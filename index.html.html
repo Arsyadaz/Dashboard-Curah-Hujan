@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Curah Hujan Kota Bandung 2013–2025 - Revisi Ringan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    border-bottom: 2px solid #3b82f6;
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header .logo-area { display: flex; align-items: center; gap: 14px; }
+  header .logo-icon {
+    width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; color: #fff; line-height: 1.2; }
+  header p { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
+  .badge { background: #3b82f6; color: #fff; font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+
+  /* LAYOUT */
+  .main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 80px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: #1e293b; border-right: 1px solid #334155;
+    padding: 24px 16px; display: flex; flex-direction: column; gap: 20px;
+  }
+  .sidebar-section h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .filter-group label { font-size: 0.82rem; color: #94a3b8; }
+  select, input[type="range"] {
+    width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+    border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; cursor: pointer;
+  }
+  select:focus { outline: none; border-color: #3b82f6; }
+  .multi-select { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+  .multi-select label { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #cbd5e1; cursor: pointer; padding: 3px 0; }
+  .multi-select input[type="checkbox"] { accent-color: #3b82f6; }
+  .btn { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-secondary { background: #1e293b; color: #94a3b8; border: 1px solid #334155; margin-top: 6px; }
+  .btn-secondary:hover { border-color: #3b82f6; color: #3b82f6; }
+
+  /* CONTENT */
+  .content { padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* STATS CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .stat-card {
+    background: #1e293b; border-radius: 14px; padding: 18px 20px;
+    border: 1px solid #334155; position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .stat-card.blue::before { background: #3b82f6; }
+  .stat-card.green::before { background: #10b981; }
+  .stat-card.orange::before { background: #f59e0b; }
+  .stat-card.purple::before { background: #8b5cf6; }
+  .stat-card .icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #fff; }
+  .stat-card .unit { font-size: 0.85rem; color: #64748b; margin-left: 4px; }
+  .stat-card .label { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+  .stat-card .change { font-size: 0.75rem; margin-top: 6px; }
+  .change.up { color: #10b981; } .change.down { color: #ef4444; }
+
+  /* CHARTS GRID */
+  .charts-top { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+  .charts-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .chart-card {
+    background: #1e293b; border-radius: 14px; border: 1px solid #334155; overflow: hidden;
+  }
+  .chart-header { padding: 16px 20px 0; display: flex; align-items: center; justify-content: space-between; }
+  .chart-header h3 { font-size: 0.92rem; font-weight: 700; color: #fff; }
+  .chart-header p { font-size: 0.75rem; color: #64748b; }
+  .chart-body { padding: 16px 20px 20px; }
+  canvas { max-width: 100%; }
+
+  /* TABLE */
+  .table-card { background: #1e293b; border-radius: 14px; border: 1px solid #334155; overflow: hidden; }
+  .table-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
+  .table-header h3 { font-size: 0.92rem; font-weight: 700; color: #fff; }
+  .table-wrapper { overflow-x: auto; max-height: 280px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { background: #0f172a; color: #94a3b8; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: center; position: sticky; top: 0; }
+  td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #1e3a5f; color: #cbd5e1; }
+  tr:hover td { background: #1e3a5f; }
+  .cell-high { color: #3b82f6; font-weight: 700; }
+  .cell-low { color: #ef4444; }
+  .cell-pred { color: #8b5cf6; font-style: italic; }
+
+  /* COMPARISON */
+  .comparison-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+  .badge-sarima { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid #3b82f6; }
+  .badge-hw { background: rgba(139,92,246,0.2); color: #8b5cf6; border: 1px solid #8b5cf6; }
+
+  /* MAP */
+  .map-card { background: #1e293b; border-radius: 14px; border: 1px solid #334155; overflow: hidden; }
+  .map-placeholder {
+    height: 200px; background: linear-gradient(135deg, #0c2340 0%, #1a3a5c 50%, #0f2a4a 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
+    font-size: 0.85rem; color: #64748b;
+  }
+  .map-info { padding: 14px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px solid #334155; }
+  .map-stat { text-align: center; }
+  .map-stat .val { font-size: 0.95rem; font-weight: 700; color: #fff; }
+  .map-stat .lbl { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+
+  /* EXPORT AREA */
+  .export-row { display: flex; gap: 10px; }
+  .export-btn {
+    flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    color: #94a3b8; font-size: 0.8rem; cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .export-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+  /* MODEL COMPARISON */
+  .model-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .model-card { background: #0f172a; border-radius: 10px; padding: 14px; border: 1px solid #334155; }
+  .model-card h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; }
+  .model-card.sarima h4 { color: #3b82f6; }
+  .model-card.hw h4 { color: #8b5cf6; }
+  .model-metric { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #1e293b; font-size: 0.78rem; }
+  .model-metric:last-child { border-bottom: none; }
+  .metric-name { color: #64748b; }
+  .metric-val { font-weight: 700; color: #e2e8f0; }
+  .winner { color: #10b981; }
+
+  .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 8px; }
+
+
+  /* REVISI RINGAN BERDASARKAN MASUKAN PENGGUNA */
+  .nav-buttons { display: grid; gap: 8px; }
+  .nav-buttons button {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #cbd5e1; cursor: pointer; text-align: left; font-size: 0.8rem;
+  }
+  .nav-buttons button:hover { border-color:#3b82f6; color:#60a5fa; }
+  .helper-note {
+    margin-top: 10px; background: rgba(15,23,42,0.72); border: 1px solid #334155;
+    color: #94a3b8; border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; line-height: 1.6;
+  }
+  .rain-legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .rain-pill { padding:4px 9px; border-radius:999px; background:#0f172a; border:1px solid #334155; color:#94a3b8; font-size:0.72rem; }
+  .map-sketch { height: 210px; position: relative; overflow: hidden; background: radial-gradient(circle at 50% 40%, #1e3a5f, #0f172a 72%); }
+  .map-sketch svg { width:100%; height:100%; display:block; }
+  .map-caption { padding: 12px 16px; color:#94a3b8; font-size:0.76rem; line-height:1.6; border-top:1px solid #334155; }
+  @media print { .sidebar, header .badge, .export-row, .nav-buttons { display:none !important; } .main { grid-template-columns: 1fr; } body { background:#fff; } }
+
+  /* responsive */
+  @media (max-width: 1200px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-top { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-icon">🌧️</div>
+    <div>
+      <h1>Dashboard Curah Hujan Kota Bandung</h1>
+      <p>Peramalan SARIMA & Holt-Winters Exponential Smoothing | 2013–2025</p>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="badge">Revisi tampilan</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR FILTER -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Navigasi</h3>
+      <div class="nav-buttons">
+        <button onclick="scrollToSection('tren')">📈 Tren Bulanan</button>
+        <button onclick="scrollToSection('musiman')">🗓️ Pola Musiman</button>
+        <button onclick="scrollToSection('model')">🔬 Evaluasi Model</button>
+        <button onclick="scrollToSection('tabel')">📋 Tabel Data</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Filter Data</h3>
+      <div class="filter-group">
+        <label>Tahun</label>
+        <select id="filterYear" onchange="updateDashboard()">
+          <option value="all">Semua Tahun (2013–2025)</option>
+          <option value="2013">2013</option><option value="2014">2014</option>
+          <option value="2015">2015</option><option value="2016">2016</option>
+          <option value="2017">2017</option><option value="2018">2018</option>
+          <option value="2019">2019</option><option value="2020">2020</option>
+          <option value="2021">2021</option><option value="2022">2022</option>
+          <option value="2023">2023</option><option value="2024">2024</option>
+          <option value="2025">2025 (Prediksi)</option>
+        </select>
+      </div>
+      <div class="filter-group" style="margin-top:12px;">
+        <label>Bulan</label>
+        <div class="multi-select" id="bulanFilter">
+          <!-- dynamically generated -->
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Tampilan Grafik</h3>
+      <div class="filter-group">
+        <label>Jenis Grafik</label>
+        <select id="chartType" onchange="updateLineChart()">
+          <option value="line">Line Chart</option>
+          <option value="bar">Bar Chart</option>
+        </select>
+      </div>
+      <div class="filter-group" style="margin-top:10px;">
+        <label>Tampilkan Prediksi</label>
+        <select id="showPred" onchange="updateLineChart()">
+          <option value="both">SARIMA + Holt-Winters</option>
+          <option value="sarima">SARIMA saja</option>
+          <option value="hw">Holt-Winters saja</option>
+          <option value="none">Tidak Ditampilkan</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Ekspor</h3>
+      <div class="export-row">
+        <button class="export-btn" onclick="exportChart()">📊 PNG</button>
+        <button class="export-btn" onclick="exportCSV()">📥 CSV</button>
+        <button class="export-btn" onclick="exportReport()">📄 PDF</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="resetFilter()">🔄 Reset Filter</button>
+    </div>
+
+    <!-- Bandung Info -->
+    <div class="sidebar-section" style="margin-top:auto;">
+      <h3>Info Kota Bandung</h3>
+      <div style="background:#0f172a;border-radius:10px;padding:12px;font-size:0.78rem;color:#94a3b8;line-height:1.7;">
+        📍 6°55′ LS, 107°36′ BT<br>
+        🗺️ Luas: 167,3 km²<br>
+        ⛰️ Ketinggian: 768 mdpl<br>
+        🌊 DAS Citarum & Cikapundung<br>
+        📊 Data: BPS Kota Bandung
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="icon">📊</div>
+        <div><span class="value" id="statRata">192.6</span><span class="unit">mm</span></div>
+        <div class="label">Rata-rata Curah Hujan</div>
+        <div class="change up" id="statPeriod">Periode: Semua Tahun</div>
+      </div>
+      <div class="stat-card green">
+        <div class="icon">⬆️</div>
+        <div><span class="value" id="statMax">559.6</span><span class="unit">mm</span></div>
+        <div class="label">Tertinggi Sepanjang Masa</div>
+        <div class="change up">April 2016</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="icon">⬇️</div>
+        <div><span class="value" id="statMin">0.2</span><span class="unit">mm</span></div>
+        <div class="label">Terendah Sepanjang Masa</div>
+        <div class="change down">Agustus 2019</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="icon">🏆</div>
+        <div><span class="value">SARIMA</span></div>
+        <div class="label">Model Terbaik (MSE terkecil)</div>
+        <div class="change up">MSE: 8.709,92 vs 9.254,74</div>
+      </div>
+    </div>
+
+    <!-- MAIN CHARTS ROW -->
+    <div class="charts-top" id="tren">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3>📈 Tren Curah Hujan Bulanan</h3>
+            <p id="chartSubtitle">Kota Bandung 2013–2025 (aktual + prediksi)</p>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="comparison-badge badge-sarima">SARIMA</span>
+            <span class="comparison-badge badge-hw">Holt-Winters</span>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="lineChart" height="90"></canvas><div class="helper-note">Cara baca: garis biru muda menunjukkan data aktual, sedangkan garis putus-putus menunjukkan prediksi 2025. Gunakan filter tahun dan bulan di kiri untuk mempersempit tampilan.</div></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3>🗓️ Rata-rata per Bulan</h3>
+            <p>Pola musiman 2013–2024</p>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="avgMonthChart" height="155"></canvas></div>
+      </div>
+    </div>
+
+    <!-- SECOND ROW CHARTS -->
+    <div class="charts-bottom" id="musiman">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3>📊 Total per Bulan</h3>
+            <p>Akumulasi 2013–2024</p>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="totalMonthChart" height="130"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3>⚖️ Perbandingan Model 2025</h3>
+            <p>SARIMA vs Holt-Winters</p>
+          </div>
+        </div>
+        <div class="chart-body"><canvas id="comparisonChart" height="130"></canvas></div>
+      </div>
+    </div>
+
+    <!-- MODEL INFO + TABLE -->
+    <div id="model" style="display:grid;grid-template-columns:1fr 2fr;gap:24px;">
+
+      <!-- Model metrics + peta -->
+      <div style="display:flex;flex-direction:column;gap:24px;">
+      <div class="chart-card">
+        <div class="chart-header"><div><h3>🔬 Evaluasi Model</h3><p>Performa peramalan</p></div></div>
+        <div class="chart-body">
+          <div class="model-row" style="margin-bottom:12px;">
+            <div class="model-card sarima">
+              <h4>SARIMA (1,0,0)(0,1,1)₁₂</h4>
+              <div class="model-metric"><span class="metric-name">MSE</span><span class="metric-val winner">8,709.92 ✓</span></div>
+              <div class="model-metric"><span class="metric-name">Status</span><span class="metric-val winner">Model Terbaik</span></div>
+            </div>
+            <div class="model-card hw">
+              <h4>Holt-Winters Aditif</h4>
+              <div class="model-metric"><span class="metric-name">MSE</span><span class="metric-val">9,254.74</span></div>
+              <div class="model-metric"><span class="metric-name">α, β, γ</span><span class="metric-val">0.1, 0.1, 0.1</span></div>
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:8px;padding:12px;font-size:0.78rem;color:#94a3b8;">
+            <div style="margin-bottom:6px;color:#64748b;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;">Metodologi</div>
+            📌 144 data historis (Jan 2013 – Des 2024)<br>
+            📌 Pola musiman: periode 12 bulan<br>
+            📌 Transformasi Box-Cox (λ=0.5 → 1.0)<br>
+            📌 Differencing musiman D=1<br>
+            📌 Evaluasi: MSE terkecil = terbaik
+          </div>
+        </div>
+      </div>
+
+      <div class="map-card">
+        <div class="chart-header"><div><h3>🗺️ Wilayah Kota Bandung</h3><p>Konteks lokasi data curah hujan</p></div></div>
+        <div class="map-sketch">
+          <svg viewBox="0 0 420 220" aria-label="Sketsa peta Kota Bandung">
+            <path d="M80,118 C88,70 128,42 188,44 C238,46 278,24 326,58 C374,92 366,156 324,176 C282,197 233,184 196,188 C147,193 91,169 80,118 Z" fill="#123b62" stroke="#60a5fa" stroke-width="3"/>
+            <path d="M126,111 C164,92 199,98 234,86 C264,76 296,82 326,103" fill="none" stroke="#06b6d4" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+            <circle cx="210" cy="116" r="36" fill="rgba(59,130,246,.25)" stroke="#3b82f6" stroke-width="2"/>
+            <text x="210" y="121" text-anchor="middle" fill="#e2e8f0" font-size="15" font-weight="700">Bandung</text>
+            <text x="210" y="145" text-anchor="middle" fill="#94a3b8" font-size="11">6°55′ LS · 107°36′ BT</text>
+          </svg>
+        </div>
+        <div class="map-caption">Peta ini berfungsi sebagai konteks wilayah, bukan peta presisi. Data curah hujan masih ditampilkan pada grafik dan tabel utama.</div>
+      </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-card" id="tabel">
+        <div class="table-header">
+          <h3>📋 Tabel Data Curah Hujan</h3>
+          <span style="font-size:0.75rem;color:#64748b;" id="tableInfo">Menampilkan semua data</span>
+        </div>
+        <div class="table-wrapper">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>Bulan</th>
+                <th>2013</th><th>2014</th><th>2015</th><th>2016</th><th>2017</th>
+                <th>2018</th><th>2019</th><th>2020</th><th>2021</th><th>2022</th>
+                <th>2023</th><th>2024</th>
+                <th style="color:#3b82f6;">2025-SARIMA</th>
+                <th style="color:#8b5cf6;">2025-HW</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+</div><!-- .main -->
+
+<script>
+// =====================================================================
+// DATA
+// =====================================================================
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const BULAN_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+// Data aktual curah hujan Kota Bandung (mm) - sumber: BPS Kota Bandung
+const rawData = {
+  2013: [216.9, 250, 305, 286, 171, 231.5, 152, 74, 153, 212, 443, 418],
+  2014: [309, 88.9, 418.7, 217.6, 176.7, 195.5, 80.8, 30.6, 0.6, 220.5, 293, 316.4],
+  2015: [188, 189.1, 318.6, 285.2, 322.4, 58.8, 2.9, 0.3, 9.7, 123.5, 455, 311.5],
+  2016: [392.8, 194.4, 442.3, 559.6, 327.2, 139.3, 97.6, 32.4, 90.8, 281.7, 443, 59.9],
+  2017: [65.3, 199.3, 389.3, 220.2, 222.3, 111, 39.1, 55.7, 68.5, 222.6, 442.2, 129.9],
+  2018: [191, 239.3, 292, 297.6, 123.9, 59, 0.3, 51.5, 34.4, 261.1, 483.2, 323.5],
+  2019: [231.6, 269.1, 222.7, 298.9, 245.7, 64.2, 34.2, 0.2, 8.8, 189.6, 270.7, 313.5],
+  2020: [207.6, 337, 291, 271, 292, 148, 73.3, 30, 137.3, 214.7, 207, 262],
+  2021: [146.4, 153.9, 292.5, 177.3, 239, 127.3, 33.2, 51.4, 107, 303.2, 454.3, 198.5],
+  2022: [59.5, 117.1, 238.9, 336.2, 146.9, 88, 70.2, 29.9, 75.5, 366.7, 307.2, 277.7],
+  2023: [67, 111, 200, 276, 269, 123, 82, 29, 18, 298, 239, 365],
+  2024: [335, 264, 272, 215, 71, 68, 30, 35, 90, 167, 512, 90],
+};
+
+// Prediksi 2025 SARIMA(1,0,0)(0,1,1)12
+const sarima2025 = [153, 188, 288, 281, 215, 106, 60, 51, 93, 183, 350, 255];
+// Prediksi 2025 Holt-Winters Additive (α=β=γ=0.1)
+const hw2025 = [171, 177, 272, 258, 189, 84, 39, 30, 75, 169, 335, 224];
+
+// =====================================================================
+// INIT SIDEBAR CHECKBOXES
+// =====================================================================
+const bulanContainer = document.getElementById('bulanFilter');
+BULAN.forEach((b, i) => {
+  const label = document.createElement('label');
+  label.innerHTML = `<input type="checkbox" value="${i}" checked onchange="updateDashboard()"> ${b}`;
+  bulanContainer.appendChild(label);
+});
+
+function getSelectedBulan() {
+  return [...document.querySelectorAll('#bulanFilter input:checked')].map(cb => parseInt(cb.value));
+}
+
+function getSelectedYear() {
+  return document.getElementById('filterYear').value;
+}
+
+// =====================================================================
+// STATS UPDATE
+// =====================================================================
+function updateStats(filteredData) {
+  let all = filteredData.flat().filter(v => v != null);
+  if (all.length === 0) return;
+  const avg = (all.reduce((a,b) => a+b, 0) / all.length).toFixed(1);
+  document.getElementById('statRata').textContent = avg;
+  const yr = getSelectedYear();
+  document.getElementById('statPeriod').textContent = yr === 'all' ? 'Periode: 2013–2024' : `Periode: ${yr}`;
+}
+
+// =====================================================================
+// LINE CHART
+// =====================================================================
+let lineChartInstance = null;
+
+function buildLineChartData() {
+  const yr = getSelectedYear();
+  const selectedBulan = getSelectedBulan();
+  const showPred = document.getElementById('showPred').value;
+
+  let labels = [], actualData = [], sarimaData = [], hwData = [];
+
+  if (yr === 'all') {
+    Object.keys(rawData).sort().forEach(year => {
+      BULAN_SHORT.forEach((b, mi) => {
+        if (!selectedBulan.includes(mi)) return;
+        labels.push(`${b} ${year}`);
+        actualData.push(rawData[year][mi] ?? null);
+        sarimaData.push(null); hwData.push(null);
+      });
+    });
+    // add 2025 predictions
+    BULAN_SHORT.forEach((b, mi) => {
+      if (!selectedBulan.includes(mi)) return;
+      labels.push(`${b} 2025`);
+      actualData.push(null);
+      sarimaData.push(sarima2025[mi]);
+      hwData.push(hw2025[mi]);
+    });
+  } else if (yr === '2025') {
+    BULAN_SHORT.forEach((b, mi) => {
+      if (!selectedBulan.includes(mi)) return;
+      labels.push(b);
+      actualData.push(null);
+      sarimaData.push(sarima2025[mi]);
+      hwData.push(hw2025[mi]);
+    });
+  } else {
+    BULAN_SHORT.forEach((b, mi) => {
+      if (!selectedBulan.includes(mi)) return;
+      labels.push(b);
+      actualData.push(rawData[yr]?.[mi] ?? null);
+      sarimaData.push(null); hwData.push(null);
+    });
+  }
+
+  const datasets = [{
+    label: 'Aktual (mm)',
+    data: actualData,
+    borderColor: '#06b6d4',
+    backgroundColor: 'rgba(6,182,212,0.08)',
+    fill: true, tension: 0.4, pointRadius: yr === 'all' ? 0 : 4,
+    borderWidth: 2,
+  }];
+
+  if (showPred === 'both' || showPred === 'sarima') {
+    datasets.push({
+      label: 'SARIMA 2025 (mm)',
+      data: sarimaData, borderColor: '#3b82f6',
+      borderDash: [5,3], fill: false, tension: 0.4,
+      pointRadius: 5, borderWidth: 2,
+    });
+  }
+  if (showPred === 'both' || showPred === 'hw') {
+    datasets.push({
+      label: 'Holt-Winters 2025 (mm)',
+      data: hwData, borderColor: '#8b5cf6',
+      borderDash: [3,2], fill: false, tension: 0.4,
+      pointRadius: 5, borderWidth: 2,
+    });
+  }
+
+  return { labels, datasets };
+}
+
+function updateLineChart() {
+  const type = document.getElementById('chartType').value === 'bar' ? 'bar' : 'line';
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  const { labels, datasets } = buildLineChartData();
+
+  if (lineChartInstance) lineChartInstance.destroy();
+  lineChartInstance = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, animation: { duration: 600 },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1) || '-'} mm` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#1e3a5f' } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1e3a5f' }, title: { display: true, text: 'mm', color: '#64748b' } }
+      }
+    }
+  });
+}
+
+// =====================================================================
+// AVG PER MONTH CHART
+// =====================================================================
+let avgMonthChart = null;
+function updateAvgMonthChart() {
+  const selectedBulan = getSelectedBulan();
+  const avgs = BULAN_SHORT.map((b, mi) => {
+    if (!selectedBulan.includes(mi)) return null;
+    const vals = Object.values(rawData).map(d => d[mi]).filter(v => v != null);
+    return vals.reduce((a,b) => a+b, 0) / vals.length;
+  });
+  const ctx = document.getElementById('avgMonthChart').getContext('2d');
+  if (avgMonthChart) avgMonthChart.destroy();
+  avgMonthChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: BULAN_SHORT.filter((_, i) => selectedBulan.includes(i)),
+      datasets: [{
+        label: 'Rata-rata (mm)',
+        data: avgs.filter(v => v !== null),
+        backgroundColor: avgs.filter(v => v !== null).map(v => v > 250 ? '#3b82f6' : v > 150 ? '#06b6d4' : '#10b981'),
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e3a5f' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// =====================================================================
+// TOTAL PER MONTH CHART
+// =====================================================================
+let totalMonthChart = null;
+function updateTotalMonthChart() {
+  const selectedBulan = getSelectedBulan();
+  const totals = BULAN_SHORT.map((b, mi) => {
+    if (!selectedBulan.includes(mi)) return null;
+    return Object.values(rawData).map(d => d[mi]).filter(v => v != null).reduce((a,b) => a+b, 0);
+  }).filter(v => v !== null);
+
+  const ctx = document.getElementById('totalMonthChart').getContext('2d');
+  if (totalMonthChart) totalMonthChart.destroy();
+  totalMonthChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: BULAN_SHORT.filter((_, i) => selectedBulan.includes(i)),
+      datasets: [{
+        label: 'Total Akumulasi (mm)',
+        data: totals,
+        backgroundColor: 'rgba(6,182,212,0.6)',
+        borderColor: '#06b6d4',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e3a5f' } },
+        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e3a5f' }, title: { display: true, text: 'mm', color: '#64748b', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// =====================================================================
+// COMPARISON 2025 CHART
+// =====================================================================
+let comparisonChart = null;
+function updateComparisonChart() {
+  const selectedBulan = getSelectedBulan();
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+  if (comparisonChart) comparisonChart.destroy();
+  comparisonChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: BULAN_SHORT.filter((_, i) => selectedBulan.includes(i)),
+      datasets: [
+        {
+          label: 'SARIMA (mm)', data: sarima2025.filter((_, i) => selectedBulan.includes(i)),
+          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true, tension: 0.4, pointRadius: 5, borderWidth: 2,
+        },
+        {
+          label: 'Holt-Winters (mm)', data: hw2025.filter((_, i) => selectedBulan.includes(i)),
+          borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)',
+          fill: true, tension: 0.4, pointRadius: 5, borderWidth: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e3a5f' } },
+        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e3a5f' } }
+      }
+    }
+  });
+}
+
+// =====================================================================
+// TABLE
+// =====================================================================
+function updateTable() {
+  const selectedBulan = getSelectedBulan();
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  BULAN.forEach((b, mi) => {
+    if (!selectedBulan.includes(mi)) return;
+    const tr = document.createElement('tr');
+    let cells = `<td style="text-align:left;font-weight:600;color:#e2e8f0;">${b}</td>`;
+    let maxVal = -Infinity, minVal = Infinity;
+    const vals2013_2024 = Object.keys(rawData).map(yr => rawData[yr][mi]);
+    vals2013_2024.forEach(v => { if (v > maxVal) maxVal = v; if (v < minVal) minVal = v; });
+
+    Object.keys(rawData).sort().forEach(yr => {
+      const v = rawData[yr][mi];
+      const cls = v === maxVal ? 'cell-high' : v === minVal ? 'cell-low' : '';
+      cells += `<td class="${cls}">${v != null ? v.toFixed(0) : '-'}</td>`;
+    });
+    cells += `<td class="cell-pred">${sarima2025[mi]}</td>`;
+    cells += `<td class="cell-pred" style="color:#8b5cf6;">${hw2025[mi]}</td>`;
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('tableInfo').textContent = `${selectedBulan.length} bulan ditampilkan`;
+}
+
+// =====================================================================
+// MASTER UPDATE
+// =====================================================================
+function updateDashboard() {
+  const yr = getSelectedYear();
+  const selectedBulan = getSelectedBulan();
+
+  // Stats mengikuti filter bulan yang dipilih
+  let data = [];
+  if (yr === 'all') {
+    Object.values(rawData).forEach(arr => selectedBulan.forEach(mi => data.push(arr[mi])));
+  } else if (yr !== '2025') {
+    selectedBulan.forEach(mi => data.push((rawData[yr] || [])[mi]));
+  } else {
+    selectedBulan.forEach(mi => { data.push(sarima2025[mi]); data.push(hw2025[mi]); });
+  }
+  const filtered = data.filter(v => v != null && !Number.isNaN(v));
+  document.getElementById('statRata').textContent = filtered.length ? (filtered.reduce((a,b)=>a+b,0)/filtered.length).toFixed(1) : '-';
+  document.getElementById('statPeriod').textContent = yr === 'all' ? 'Periode: Semua 2013–2024' : `Periode: ${yr}`;
+
+  updateLineChart();
+  updateAvgMonthChart();
+  updateTotalMonthChart();
+  updateComparisonChart();
+  updateTable();
+}
+
+function resetFilter() {
+  document.getElementById('filterYear').value = 'all';
+  document.getElementById('chartType').value = 'line';
+  document.getElementById('showPred').value = 'both';
+  document.querySelectorAll('#bulanFilter input').forEach(cb => cb.checked = true);
+  updateDashboard();
+}
+
+function exportChart() {
+  const a = document.createElement('a');
+  a.href = document.getElementById('lineChart').toDataURL('image/png');
+  a.download = 'curah_hujan_bandung_chart.png';
+  a.click();
+}
+
+function exportCSV() {
+  let csv = 'Bulan,' + Object.keys(rawData).sort().join(',') + ',SARIMA_2025,HW_2025\n';
+  BULAN.forEach((b, mi) => {
+    let row = b;
+    Object.keys(rawData).sort().forEach(yr => { row += ',' + (rawData[yr][mi] ?? ''); });
+    row += ',' + sarima2025[mi] + ',' + hw2025[mi];
+    csv += row + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'curah_hujan_bandung_2013_2025.csv';
+  a.click();
+}
+
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function exportReport() {
+  window.print();
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  updateDashboard();
+});
+</script>
+</body>
+</html>
